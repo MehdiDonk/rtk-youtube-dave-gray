@@ -1,48 +1,43 @@
-import { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import PostAuthor from "./PostAuthor";
-import {
-  selectAllPosts,
-  getPostsStatus,
-  getPostsError,
-  fetchPosts,
-} from "./postsSlice";
-import TimeAgo from "./TimeAgo";
-import ReactionButtons from "./ReactionButtons";
+import { useSelector } from "react-redux";
+import { selectAllPosts, getPostsStatus, getPostsError } from "./postsSlice";
+import PostsExcerpt from "./PostsExcerpt";
 
 const PostsList = () => {
-  const dispatch = useDispatch();
+  // const effectRan = useRef(false);
 
   const posts = useSelector(selectAllPosts);
   const postsStatus = useSelector(getPostsStatus);
-  const postsError = useSelector(getPostsError);
+  const error = useSelector(getPostsError);
 
+  /*
+  // If fetch post wasn't in the INDEX.JS
+  // Comment serves as an exemple
   useEffect(() => {
-    if (postsStatus === "idle") {
-      dispatch(fetchPosts());
+    if (effectRan.current === false) {
+      if (postsStatus === "idle") {
+        // Dispatching the async thunk
+        dispatch(fetchPosts());
+      }
+      return () => (effectRan.current = true);
     }
   }, [postsStatus, dispatch]);
+  */
 
-  const orderedPosts = posts
-    .slice()
-    .sort((a, b) => b.date.localeCompare(a.date));
+  let content;
+  if (postsStatus === "loading") {
+    content = <p>"Loading..."</p>;
+  } else if (postsStatus === "succeeded") {
+    const orderedPosts = posts
+      .slice()
+      .sort((a, b) => b.date.localeCompare(a.date));
+    content = orderedPosts.map((post) => (
+      <PostsExcerpt key={post.id} post={post} />
+    ));
+  } else if (postsStatus === "error") {
+    content = <p>{error}</p>;
+  }
 
-  const renderedPosts = orderedPosts.map((post) => (
-    <article key={post.id}>
-      <h3>{post.title}</h3>
-      <PostAuthor userId={post.userId} />
-      <TimeAgo timestamp={post.date} />
-      <p>{post.content.substring(0, 100)}</p>
-      <ReactionButtons post={post} />
-    </article>
-  ));
-
-  return (
-    <section>
-      <h2>Posts</h2>
-      {renderedPosts}
-    </section>
-  );
+  return <section>{content}</section>;
 };
 
 export default PostsList;

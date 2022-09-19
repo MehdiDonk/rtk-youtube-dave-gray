@@ -1,4 +1,8 @@
-import { createSlice, nanoid, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
 import { sub } from "date-fns";
 import axios from "axios";
 
@@ -9,6 +13,7 @@ const initialState = {
   posts: [],
   status: "idle", // 'idle | 'loading' | 'succeeded' | 'failed'
   error: null,
+  count: 0,
 };
 
 export const fetchPosts = createAsyncThunk("posts/fetchPosts", async () => {
@@ -67,36 +72,15 @@ const postsSlice = createSlice({
   name: "posts",
   initialState,
   reducers: {
-    postAdded: {
-      reducer(state, action) {
-        // .push: Only works inside createSlice. It's thanks to Immer.js
-        state.posts.push(action.payload);
-      },
-      prepare(title, content, userId) {
-        return {
-          payload: {
-            id: nanoid(),
-            title,
-            content,
-            date: new Date().toISOString(),
-            userId,
-            reactions: {
-              thumbsUp: 0,
-              wow: 0,
-              heart: 0,
-              rocket: 0,
-              coffee: 0,
-            },
-          },
-        };
-      },
-    },
     reactionAdded(state, action) {
       const { postId, reaction } = action.payload;
       const existingPost = state.posts.find((post) => post.id === postId);
       if (existingPost) {
         existingPost.reactions[reaction]++; // Mutating the state but is ok thanks to ImmerJS inside CreateSlice
       }
+    },
+    increaseCount(state, action) {
+      state.count = state.count + 1;
     },
   },
   extraReducers(builder) {
@@ -172,10 +156,16 @@ const postsSlice = createSlice({
 export const selectAllPosts = (state) => state.posts.posts;
 export const getPostsStatus = (state) => state.posts.status;
 export const getPostsError = (state) => state.posts.error;
+export const getCount = (state) => state.posts.count;
 
 export const selectPostById = (state, postId) =>
   state.posts.posts.find((post) => post.id === postId);
 
-export const { postAdded, reactionAdded } = postsSlice.actions;
+export const selectPostsByUser = createSelector(
+  [selectAllPosts, (state, userId) => userId],
+  (posts, userId) => posts.filter((post) => post.user === userId)
+);
+
+export const { increaseCount, reactionAdded } = postsSlice.actions;
 
 export default postsSlice.reducer;
